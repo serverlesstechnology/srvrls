@@ -1,0 +1,106 @@
+{
+  "Context": {
+    "Context": {
+      "Context": {
+        "Context": 0
+      }
+    }
+  },
+  "resource": "/{proxy+}",
+  "path": "/target/id",
+  "httpMethod": "GET",
+  "headers": {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Authorization": "eyJraWQiOiJja25ZT1poRG83WmxTTVBLQWFKVmI5OUhaOGg4ZTlhR2E0TTlRQXF2SkU4PSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwOTJhZThlNC0yOWFhLTQwNzItOGRhMy1mODdlYzQ5OGFjZGUiLCJhdWQiOiI5dHBkaWs4N29nc3RkcjdkaXRtOW41aGFnIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImV2ZW50X2lkIjoiMzM0NTRiODgtYzE2ZC00OTEyLTgzNzUtNjQ0ZjczNTRiYTlmIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE1ODIxNDc2MzEsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy13ZXN0LTIuYW1hem9uYXdzLmNvbVwvdXMtd2VzdC0yX0hwaUpTNXVuNiIsImNvZ25pdG86dXNlcm5hbWUiOiJkZ2FycmVkIiwiZXhwIjoxNTgyMTUxMjMxLCJpYXQiOjE1ODIxNDc2MzEsImVtYWlsIjoiZGF2ZS5nYXJyZWRAZ21haWwuY29tIn0.IUmZxyfB8XX_OyZj69PdtnhzQePndea7uP_BuDgjW-G3H6M6RPLfT4txg17GZCCNnrThl2mvgAhu36qb0TrEnncpRcQQHIFOIPcSfS-PZBnSYGaEtEqravQ09OBJPmtr4UJcG6amPYQV2r9JFdr8Taq_vnzrA9F1W4oCvF5dqmdIsbrxSsmR1O8c0zmAeFPjM1TEE5fz4liXocNfxtCLwthjCddozUON37mEqwkpTCgoe5soK0GechichEG5s0v92-tLs_bBJ9OXuOrFKaBwDVm4YCuxS1StCpPY3SDGcK4smlpKaE9v_MxNCvll209Aik8hTpj3lISn-n1AmxAacQ",
+    "Cache-Control": "no-cache",
+    "Host": "kqz56iza38.execute-api.us-west-2.amazonaws.com",
+    "Postman-Token": "50cc00f3-6468-4261-b0fb-73346fc9c534",
+    "User-Agent": "PostmanRuntime/7.22.0",
+    "X-Amzn-Trace-Id": "Root=1-5e4da848-4f55ad9a8e6eba74d61a81d6",
+    "X-Forwarded-For": "98.99.244.83",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Accept": [
+      "*/*"
+    ],
+    "Accept-Encoding": [
+      "gzip, deflate, br"
+    ],
+    "Authorization": [
+      "eyJraWQiOiJja25ZT1poRG83WmxTTVBLQWFKVmI5OUhaOGg4ZTlhR2E0TTlRQXF2SkU4PSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwOTJhZThlNC0yOWFhLTQwNzItOGRhMy1mODdlYzQ5OGFjZGUiLCJhdWQiOiI5dHBkaWs4N29nc3RkcjdkaXRtOW41aGFnIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImV2ZW50X2lkIjoiMzM0NTRiODgtYzE2ZC00OTEyLTgzNzUtNjQ0ZjczNTRiYTlmIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE1ODIxNDc2MzEsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy13ZXN0LTIuYW1hem9uYXdzLmNvbVwvdXMtd2VzdC0yX0hwaUpTNXVuNiIsImNvZ25pdG86dXNlcm5hbWUiOiJkZ2FycmVkIiwiZXhwIjoxNTgyMTUxMjMxLCJpYXQiOjE1ODIxNDc2MzEsImVtYWlsIjoiZGF2ZS5nYXJyZWRAZ21haWwuY29tIn0.IUmZxyfB8XX_OyZj69PdtnhzQePndea7uP_BuDgjW-G3H6M6RPLfT4txg17GZCCNnrThl2mvgAhu36qb0TrEnncpRcQQHIFOIPcSfS-PZBnSYGaEtEqravQ09OBJPmtr4UJcG6amPYQV2r9JFdr8Taq_vnzrA9F1W4oCvF5dqmdIsbrxSsmR1O8c0zmAeFPjM1TEE5fz4liXocNfxtCLwthjCddozUON37mEqwkpTCgoe5soK0GechichEG5s0v92-tLs_bBJ9OXuOrFKaBwDVm4YCuxS1StCpPY3SDGcK4smlpKaE9v_MxNCvll209Aik8hTpj3lISn-n1AmxAacQ"
+    ],
+    "Cache-Control": [
+      "no-cache"
+    ],
+    "Host": [
+      "kqz56iza38.execute-api.us-west-2.amazonaws.com"
+    ],
+    "Postman-Token": [
+      "50cc00f3-6468-4261-b0fb-73346fc9c534"
+    ],
+    "User-Agent": [
+      "PostmanRuntime/7.22.0"
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-5e4da848-4f55ad9a8e6eba74d61a81d6"
+    ],
+    "X-Forwarded-For": [
+      "98.99.244.83"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": {
+    "proxy": "test/id"
+  },
+  "stageVariables": null,
+  "requestContext": {
+    "accountId": "202214144554",
+    "resourceId": "383cl3",
+    "stage": "test",
+    "requestId": "db595cb7-5cdc-43c4-ac1c-3964f6c10fdf",
+    "identity": {
+      "cognitoIdentityPoolId": "",
+      "accountId": "",
+      "cognitoIdentityId": "",
+      "caller": "",
+      "apiKey": "",
+      "apiKeyId": "",
+      "accessKey": "",
+      "sourceIp": "98.99.244.83",
+      "cognitoAuthenticationType": "",
+      "cognitoAuthenticationProvider": "",
+      "userArn": "",
+      "userAgent": "PostmanRuntime/7.22.0",
+      "user": ""
+    },
+    "resourcePath": "/{proxy+}",
+    "authorizer": {
+      "claims": {
+        "aud": "9tpdik87ogstdr7ditm9n5hag",
+        "auth_time": "1582147631",
+        "cognito:username": "dgarred",
+        "email": "dave.garred@gmail.com",
+        "email_verified": "true",
+        "event_id": "33454b88-c16d-4912-8375-644f7354ba9f",
+        "exp": "Wed Feb 19 22:27:11 UTC 2020",
+        "iat": "Wed Feb 19 21:27:11 UTC 2020",
+        "iss": "https://cognito-idp.us-west-2.amazonaws.com/us-west-2_HpiJS5un6",
+        "sub": "092ae8e4-29aa-4072-8da3-f87ec498acde",
+        "token_use": "id"
+      }
+    },
+    "httpMethod": "GET",
+    "apiId": "kqz56iza38"
+  },
+  "body": "{}"
+}
