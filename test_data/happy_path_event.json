@@ -102,5 +102,5 @@
     "httpMethod": "GET",
     "apiId": "kqz56iza38"
   },
-  "body": "{}"
+  "body": "{\"id\":\"tst-E3A216\",\"name\":\"Steve Smith\"}"
 }
