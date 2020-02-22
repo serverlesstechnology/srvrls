@@ -6,6 +6,8 @@ use lambda_runtime::Context;
 use lambda_runtime::error::HandlerError;
 
 use crate::response::Response;
+use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
 mod response;
 
@@ -28,7 +30,7 @@ impl LambdaRouter {
     pub fn register(&mut self, route: &str, f: ProxyHandler) {
         self.handlers.insert(route.to_string(), Box::new(GenericProcessor::new(f)));
     }
-    pub fn register_rpc<T: 'static + Default + Debug>(&mut self, route: &str, rpc_f: RpcHandler<T>) {
+    pub fn register_rpc<T: 'static + Default + Debug + DeserializeOwned>(&mut self, route: &str, rpc_f: RpcHandler<T>) {
         self.handlers.insert(route.to_string(), Box::new(RpcProcessor::new(rpc_f)));
     }
 }
@@ -65,10 +67,18 @@ impl <T: Default + Debug> RpcProcessor<T> {
         val
     }
 }
-impl <T: Default + Debug> Processor for RpcProcessor<T> {
+impl <T: Default + Debug + DeserializeOwned> Processor for RpcProcessor<T> {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse {
-        let dto = self.clean_val();
-        print!("{:?}", dto);
+        let body = match req.body {
+            None => return Response::not_found(),
+            Some(body) => body,
+        };
+        let dto: T = match serde_json::from_str(&body.as_str()) {
+            Ok(dto) => {
+                dto
+            },
+            Err(err) => return Response::internal_server_error(Response::simple_error(err.to_string())),
+        };
         (self.h)(dto)
     }
 }
@@ -88,13 +98,14 @@ impl lambda_runtime::Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, Ha
 
 #[cfg(test)]
 mod lambda_router_tests {
+    use super::*;
+
     use std::fs::File;
     use std::io::Read;
+
     use std::path::Path;
 
     use lambda_runtime::Handler;
-
-    use super::*;
 
     fn load_file(filename: &str) -> Result<String, std::io::Error> {
         let path = Path::new(filename);
@@ -108,17 +119,17 @@ mod lambda_router_tests {
     }
 
     fn test_func(req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse {
-        Response::ok("{}".to_string())
+        Response::ok(Some(req.headers))
     }
 
-    #[derive(Default, Debug)]
+    #[derive(Default, Debug, Deserialize, Serialize)]
     struct TestDto {
         id: String,
         name: String,
     }
 
     fn test_rpc_func(dto: TestDto) -> ApiGatewayProxyResponse {
-        Response::ok("{}".to_string())
+        Response::ok(Some(dto))
     }
 
     #[test]
@@ -129,7 +140,8 @@ mod lambda_router_tests {
         let s = load_file("test_data/happy_path_event.json").unwrap();
         let event: ApiGatewayProxyRequest = serde_json::from_str(s.as_str()).unwrap();
         let response = app.run(event, Context::default()).unwrap();
-        assert_eq!(Response::ok("{}".to_string()), response);
+        assert_eq!(response.body.unwrap().len(), 1313);
+        assert_eq!(response.status_code, 200);
 
         let s = load_file("test_data/not_supported_event.json").unwrap();
         let event: ApiGatewayProxyRequest = serde_json::from_str(s.as_str()).unwrap();
@@ -145,6 +157,7 @@ mod lambda_router_tests {
         let s = load_file("test_data/happy_path_event.json").unwrap();
         let event: ApiGatewayProxyRequest = serde_json::from_str(s.as_str()).unwrap();
         let response = app.run(event, Context::default()).unwrap();
-        assert_eq!(Response::ok("{}".to_string()), response);
+        assert_eq!(response.body.unwrap(), r#"{"id":"tst-E3A216","name":"Steve Smith"}"#.to_string());
+        assert_eq!(response.status_code, 200);
     }
 }
