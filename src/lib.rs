@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate validator_derive;
+extern crate validator;
+
 use std::collections::HashMap;
 use std::fmt::Debug;
 
@@ -10,6 +14,8 @@ use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 
 mod response;
+mod persist;
+mod validate;
 
 trait Processor {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse;
