@@ -62,15 +62,6 @@ impl Response {
             is_base64_encoded: None,
         }
     }
-    pub fn im_a_teapot<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: 418,
-            headers: Default::default(),
-            multi_value_headers: Default::default(),
-            body: Response::derive_body(body),
-            is_base64_encoded: None,
-        }
-    }
 
     pub fn internal_server_error<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {

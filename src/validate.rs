@@ -36,11 +36,11 @@ mod validation_tests {
         };
         let errs = dto.validate().err().unwrap();
         assert_eq!(errs.errors().keys().len(), 1);
-        let errMap = errs.field_errors();
-        let fieldErrors = errMap.get("id").unwrap();
-        assert_eq!(fieldErrors.len(), 1);
-        assert_eq!(fieldErrors[0].code.as_ref(), "length");
-        assert_eq!(fieldErrors[0].message.as_ref().unwrap(), "requires 8 chars");
+        let err_map = errs.field_errors();
+        let field_errors = err_map.get("id").unwrap();
+        assert_eq!(field_errors.len(), 1);
+        assert_eq!(field_errors[0].code.as_ref(), "length");
+        assert_eq!(field_errors[0].message.as_ref().unwrap(), "requires 8 chars");
     }
 
     #[test]
@@ -51,10 +51,10 @@ mod validation_tests {
         };
         let errs = dto.validate().err().unwrap();
         assert_eq!(errs.errors().keys().len(), 1);
-        let errMap = errs.field_errors();
-        let fieldErrors = errMap.get("name").unwrap();
-        assert_eq!(fieldErrors.len(), 1);
-        print!("{:?}\n", fieldErrors[0]);
-        assert_eq!(fieldErrors[0].code.as_ref(), "no x's allowed");
+        let err_map = errs.field_errors();
+        let field_errors = err_map.get("name").unwrap();
+        assert_eq!(field_errors.len(), 1);
+        print!("{:?}\n", field_errors[0]);
+        assert_eq!(field_errors[0].code.as_ref(), "no x's allowed");
     }
 }

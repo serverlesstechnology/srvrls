@@ -1,4 +1,7 @@
 #[macro_use]
+extern crate erased_serde;
+
+#[macro_use]
 extern crate validator_derive;
 extern crate validator;
 
@@ -16,6 +19,7 @@ use serde::de::DeserializeOwned;
 mod response;
 mod persist;
 mod validate;
+mod domain;
 
 trait Processor {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse;
@@ -68,10 +72,10 @@ impl <T: Default + Debug> RpcProcessor<T> {
             h: h,
         }
     }
-    fn clean_val(&self)->T{
-        let val = T::default();
-        val
-    }
+    // fn clean_val(&self)->T{
+    //     let val = T::default();
+    //     val
+    // }
 }
 impl <T: Default + Debug + DeserializeOwned> Processor for RpcProcessor<T> {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse {
