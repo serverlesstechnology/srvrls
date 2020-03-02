@@ -1,4 +1,5 @@
 extern crate postgres;
+extern crate chrono;
 
 use postgres::{Connection, TlsMode};
 
@@ -16,19 +17,22 @@ mod persistence_tests {
     use uuid::Uuid;
     use std::collections::HashMap;
     use serde_json::Value;
+    use crate::domain::ProjectAggregate;
+    use std::time::{Instant, SystemTime};
+    use super::chrono::Utc;
 
 
     #[test]
     fn test_ok() {
-        let mut object_map = HashMap::<&str,fn()->Box<dyn Event>>::new();
+        let mut object_map = HashMap::<&str,fn()->Box<dyn Event<ProjectAggregate>>>::new();
         object_map.insert("TestDto", || Box::new(TestDto::default()));
         object_map.insert("TestDtoB", || Box::new(TestDtoB::default()));
 
         let aggregate_id = format!("TST-{}", Uuid::new_v4().to_string());
-        let events: Vec<Box<dyn Event>> = vec![
+        let events: Vec<Box<dyn Event<ProjectAggregate>>> = vec![
             Box::new(TestDto{
                 id: aggregate_id.to_string(),
-                name: "John Doe".to_string()
+                full_name: "John Doe".to_string()
             }),
             Box::new(TestDtoB{
                 id: aggregate_id.to_string(),
@@ -44,9 +48,10 @@ mod persistence_tests {
             match serde_json::to_value(event.as_ref()) {
                 Ok(ser) => {
                     let sequence = i as i32;
+                    let datetime = Utc::now().to_rfc2822();
                     let payload_type = event.name();
                     match conn.execute(INSERT_EVENT, &[&aggregate_id, &sequence, &placeholder, &payload_type, &ser, &ser]) {
-                        Ok(_) => {},
+                        Ok(result) => print!("insert result: {}\n", result),
                         Err(e) => print!("{}\n", e),
                     };
                 },
@@ -61,9 +66,7 @@ mod persistence_tests {
                     let payload : Value = row.get("payload");
                     let mut event = object_map.get(payload_type.as_str()).unwrap()();
                     event.from_json(payload);
-                    // assert_eq!(*events[i], *event);
                     print!("{:?}\n", event);
-
                 }
             },
             Err(e) => print!("{}\n", e)

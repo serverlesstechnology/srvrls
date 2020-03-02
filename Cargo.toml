@@ -14,3 +14,4 @@ validator = "0.10"
 validator_derive = "0.10"
 postgres = {version = "0.15.2", features = ["with-serde_json"]}
 uuid = { version = "0.8", features = ["v4"]}
+chrono = "0.4.10"
