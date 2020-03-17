@@ -1,9 +1,8 @@
 #[macro_use]
 extern crate erased_serde;
-
+extern crate validator;
 #[macro_use]
 extern crate validator_derive;
-extern crate validator;
 
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -11,19 +10,25 @@ use std::fmt::Debug;
 use aws_lambda_events::event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
 use lambda_runtime::Context;
 use lambda_runtime::error::HandlerError;
-
-use crate::response::Response;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+
+pub use crate::response::Response;
 
 mod response;
 mod persist;
 mod validate;
 mod domain;
 
+
+pub enum HttpMethod {
+    GET, POST, PUT, HEAD, DELETE, OPTIONS, PATCH, CONNECT, TRACE
+}
+
 trait Processor {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse;
 }
+
 pub type ProxyHandler = fn(ApiGatewayProxyRequest) -> ApiGatewayProxyResponse;
 pub type RpcHandler<T> = fn(T) -> ApiGatewayProxyResponse;
 
@@ -48,13 +53,15 @@ impl LambdaRouter {
 struct GenericProcessor {
     proxy_handler: ProxyHandler,
 }
+
 impl GenericProcessor {
-    fn new(proxy_handler: ProxyHandler)->Self {
-        GenericProcessor{
+    fn new(proxy_handler: ProxyHandler) -> Self {
+        GenericProcessor {
             proxy_handler
         }
     }
 }
+
 impl Processor for GenericProcessor {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse {
         (self.proxy_handler)(req)
@@ -62,11 +69,11 @@ impl Processor for GenericProcessor {
 }
 
 
-
 struct RpcProcessor<T: Default + Debug> {
     h: RpcHandler<T>,
 }
-impl <T: Default + Debug> RpcProcessor<T> {
+
+impl<T: Default + Debug> RpcProcessor<T> {
     fn new(h: RpcHandler<T>) -> Self {
         RpcProcessor {
             h: h,
@@ -77,7 +84,8 @@ impl <T: Default + Debug> RpcProcessor<T> {
     //     val
     // }
 }
-impl <T: Default + Debug + DeserializeOwned> Processor for RpcProcessor<T> {
+
+impl<T: Default + Debug + DeserializeOwned> Processor for RpcProcessor<T> {
     fn process(&self, req: ApiGatewayProxyRequest) -> ApiGatewayProxyResponse {
         let body = match req.body {
             None => return Response::not_found(),
@@ -86,7 +94,7 @@ impl <T: Default + Debug + DeserializeOwned> Processor for RpcProcessor<T> {
         let dto: T = match serde_json::from_str(&body.as_str()) {
             Ok(dto) => {
                 dto
-            },
+            }
             Err(err) => return Response::internal_server_error(Response::simple_error(err.to_string())),
         };
         (self.h)(dto)
@@ -108,14 +116,13 @@ impl lambda_runtime::Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, Ha
 
 #[cfg(test)]
 mod lambda_router_tests {
-    use super::*;
-
     use std::fs::File;
     use std::io::Read;
-
     use std::path::Path;
 
     use lambda_runtime::Handler;
+
+    use super::*;
 
     fn load_file(filename: &str) -> Result<String, std::io::Error> {
         let path = Path::new(filename);

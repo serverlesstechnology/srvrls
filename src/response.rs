@@ -26,6 +26,16 @@ impl Response {
         }
     }
 
+    pub fn ok_empty() -> ApiGatewayProxyResponse {
+        ApiGatewayProxyResponse {
+            status_code: 200,
+            headers: Default::default(),
+            multi_value_headers: Default::default(),
+            body: Default::default(),
+            is_base64_encoded: None,
+        }
+    }
+
     pub fn bad_request<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
             status_code: 400,
@@ -56,6 +66,15 @@ impl Response {
     pub fn not_found() -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
             status_code: 404,
+            headers: Default::default(),
+            multi_value_headers: Default::default(),
+            body: None,
+            is_base64_encoded: None,
+        }
+    }
+    pub fn method_not_allowed() -> ApiGatewayProxyResponse {
+        ApiGatewayProxyResponse {
+            status_code: 405,
             headers: Default::default(),
             multi_value_headers: Default::default(),
             body: None,
