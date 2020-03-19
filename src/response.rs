@@ -9,72 +9,64 @@ pub struct SimpleError {
 }
 
 impl Response {
-
     pub fn simple_error(error_message: String) -> Option<SimpleError> {
-        Some(SimpleError{
+        Some(SimpleError {
             error: error_message
         })
     }
 
-    pub fn ok<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
+    pub fn ok<T: Serialize>(body: T) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
             status_code: 200,
             headers: Default::default(),
             multi_value_headers: Default::default(),
-            body: Response::derive_body(body),
+            body: Some(Response::derive_body(body)),
             is_base64_encoded: None,
         }
     }
 
-    pub fn ok_empty() -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: 200,
-            headers: Default::default(),
-            multi_value_headers: Default::default(),
-            body: Default::default(),
-            is_base64_encoded: None,
-        }
-    }
+    pub fn ok_empty() -> ApiGatewayProxyResponse { Response::with_status(200) }
 
-    pub fn bad_request<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
+    pub fn created() -> ApiGatewayProxyResponse { Response::with_status(201) }
+
+    pub fn accepted() -> ApiGatewayProxyResponse { Response::with_status(204) }
+
+    pub fn no_content() -> ApiGatewayProxyResponse { Response::with_status(204) }
+
+    pub fn bad_request<T: Serialize>(body: T) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
             status_code: 400,
             headers: Default::default(),
             multi_value_headers: Default::default(),
-            body: Response::derive_body(body),
+            body: Some(Response::derive_body(body)),
             is_base64_encoded: None,
         }
     }
-    pub fn unauthorized() -> ApiGatewayProxyResponse {
+
+    pub fn bad_request_with_message(message: String) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
-            status_code: 401,
+            status_code: 400,
             headers: Default::default(),
             multi_value_headers: Default::default(),
-            body: None,
+            body: Some(message),
             is_base64_encoded: None,
         }
     }
-    pub fn forbidden() -> ApiGatewayProxyResponse {
+    pub fn unauthorized() -> ApiGatewayProxyResponse { Response::with_status(401) }
+
+    pub fn forbidden() -> ApiGatewayProxyResponse { Response::with_status(403) }
+
+    pub fn not_found() -> ApiGatewayProxyResponse { Response::with_status(404) }
+
+    pub fn method_not_allowed() -> ApiGatewayProxyResponse { Response::with_status(405) }
+
+    pub fn internal_server_error() -> ApiGatewayProxyResponse { Response::with_status(500) }
+
+    pub fn service_unavailable() -> ApiGatewayProxyResponse { Response::with_status(503) }
+
+    fn with_status(code: i64) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
-            status_code: 403,
-            headers: Default::default(),
-            multi_value_headers: Default::default(),
-            body: None,
-            is_base64_encoded: None,
-        }
-    }
-    pub fn not_found() -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: 404,
-            headers: Default::default(),
-            multi_value_headers: Default::default(),
-            body: None,
-            is_base64_encoded: None,
-        }
-    }
-    pub fn method_not_allowed() -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: 405,
+            status_code: code,
             headers: Default::default(),
             multi_value_headers: Default::default(),
             body: None,
@@ -82,35 +74,9 @@ impl Response {
         }
     }
 
-    pub fn internal_server_error<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: 500,
-            headers: Default::default(),
-            multi_value_headers: Default::default(),
-            body: Response::derive_body(body),
-            is_base64_encoded: None,
-        }
-    }
-    pub fn service_unavailable<T: Serialize>(body: Option<T>) -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: 503,
-            headers: Default::default(),
-            multi_value_headers: Default::default(),
-            body: Response::derive_body(body),
-            is_base64_encoded: None,
-        }
-    }
 
-
-    fn derive_body<T: Serialize>(body: Option<T>) -> Option<String> {
-        let payload = match body {
-            None => None,
-            Some(dto) => {
-                let payload = serde_json::to_string(&dto).unwrap();
-                Some(payload)
-            }
-        };
-        payload
+    fn derive_body<T: Serialize>(body: T) -> String {
+        serde_json::to_string(&body).unwrap()
     }
 }
 
@@ -126,13 +92,21 @@ mod response_tests {
 
     #[test]
     fn test_ok() {
-        let res = Response::ok(Some(TestDto{
+        let res = Response::ok(Some(TestDto {
             id: "tst-2BAC456".to_string(),
-            name: "Jimmy Jones".to_string()
+            name: "Jimmy Jones".to_string(),
         }));
 
         assert_eq!(res.status_code, 200);
         assert_eq!(res.body, Some(r#"{"id":"tst-2BAC456","name":"Jimmy Jones"}"#.to_string()));
+    }
+
+    #[test]
+    fn test_ok_empty() {
+        let res = Response::ok_empty();
+
+        assert_eq!(res.status_code, 200);
+        assert_eq!(res.body, None);
     }
 
     #[test]
@@ -142,6 +116,7 @@ mod response_tests {
         assert_eq!(res.status_code, 400);
         assert_eq!(res.body, Some(r#"{"error":"some problem occured"}"#.to_string()));
     }
+
     #[test]
     fn test_not_found() {
         let res = Response::not_found();
@@ -149,6 +124,7 @@ mod response_tests {
         assert_eq!(res.status_code, 404);
         assert_eq!(res.body, None);
     }
+
     #[test]
     fn test_unauthorized() {
         let res = Response::unauthorized();
@@ -156,6 +132,7 @@ mod response_tests {
         assert_eq!(res.status_code, 401);
         assert_eq!(res.body, None);
     }
+
     #[test]
     fn test_forbidden() {
         let res = Response::forbidden();
@@ -166,20 +143,17 @@ mod response_tests {
 
     #[test]
     fn test_internal_server_error() {
-        let res = Response::internal_server_error(Response::simple_error("something broke".to_string()));
+        let res = Response::internal_server_error();
 
         assert_eq!(res.status_code, 500);
-        assert_eq!(res.body, Some(r#"{"error":"something broke"}"#.to_string()));
+        assert_eq!(res.body, None);
     }
+
     #[test]
     fn test_service_unavailable() {
-        let res = Response::service_unavailable(Response::simple_error("server is down".to_string()));
+        let res = Response::service_unavailable();
 
         assert_eq!(res.status_code, 503);
-        assert_eq!(res.body, Some(r#"{"error":"server is down"}"#.to_string()));
+        assert_eq!(res.body, None);
     }
-
-
-
-
 }

@@ -1,9 +1,7 @@
-use validator::{Validate, ValidationError};
 
 #[cfg(test)]
 mod validation_tests {
-    use super::*;
-
+    use validator::{Validate, ValidationError};
 
     #[derive(Default, Debug, Validate)]
     struct TestDto {
