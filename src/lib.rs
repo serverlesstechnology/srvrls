@@ -2,13 +2,14 @@ extern crate validator;
 #[macro_use]
 extern crate validator_derive;
 
+use std::collections::HashMap;
+
 use aws_lambda_events::event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
 use lambda_runtime::{Context, Handler};
 use lambda_runtime::error::HandlerError;
 use serde_json::Value;
 
 pub use crate::response::SrvrlsResponse;
-use std::collections::HashMap;
 
 mod response;
 mod validate;
@@ -23,9 +24,19 @@ pub enum HttpMethod {
     OTHER,
 }
 
+#[derive(Debug,Clone,PartialEq)]
+pub enum SrvrlsError {
+    BadRequest(String),
+    Unauthorized,
+    Forbidden,
+    NotFound,
+    MethodNotAllowed,
+    InternalServerError,
+}
+
 pub struct SrvrlsRequest {
     event: ApiGatewayProxyRequest,
-    path_parameters: HashMap<i32,String>
+    path_parameters: HashMap<i32, String>,
 }
 
 impl SrvrlsRequest {
@@ -39,13 +50,12 @@ impl SrvrlsRequest {
         let ll = 0 as i32;
         SrvrlsRequest {
             event,
-            path_parameters
+            path_parameters,
         }
     }
 
     pub fn path_parameter(&self, position: i32) -> String {
-        let pos = position.clone();
-        match &self.event.path_parameters.get(&pos) {
+        match &self.path_parameters.get(&position) {
             None => "".to_string(),
             Some(val) => val.to_string(),
         }
@@ -99,7 +109,7 @@ impl SrvrlsRequest {
 }
 
 pub trait SrvrlsApplication {
-    fn handle(&mut self, event: SrvrlsRequest) -> SrvrlsResponse;
+    fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError>;
 }
 
 pub struct Srvrls<T: SrvrlsApplication> {
@@ -110,20 +120,40 @@ pub struct Srvrls<T: SrvrlsApplication> {
 impl<T: SrvrlsApplication> Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, HandlerError> for Srvrls<T> {
     fn run(&mut self, event: ApiGatewayProxyRequest, _ctx: Context) -> Result<ApiGatewayProxyResponse, HandlerError> {
         let request = SrvrlsRequest::new(event);
-        let response = self.application.handle(request);
-        Ok(ApiGatewayProxyResponse {
-            status_code: response.status_code as i64,
-            headers: response.headers,
-            multi_value_headers: Default::default(),
-            body: response.body,
-            is_base64_encoded: None,
-        })
+        match self.application.handle(request) {
+            Ok(response) => {
+                Ok(self.response(response.status_code as i64, response.body, response.headers))
+            }
+            Err(e) => {
+                match e {
+                    SrvrlsError::BadRequest(body) => {
+                        let payload = serde_json::to_string(&SrvrlsResponse::simple_error(body))?;
+                        Ok(self.response(400, Some(payload),Default::default()))
+                    }
+                    SrvrlsError::Unauthorized => {Ok(self.response(401, None, Default::default()))}
+                    SrvrlsError::Forbidden => Ok(self.response(403, None, Default::default())),
+                    SrvrlsError::NotFound => Ok(self.response(404, None, Default::default())),
+                    SrvrlsError::MethodNotAllowed => Ok(self.response(405, None, Default::default())),
+                    SrvrlsError::InternalServerError => Ok(self.response(500, None, Default::default())),
+                }
+            }
+        }
     }
 }
 
 impl<T: SrvrlsApplication> Srvrls<T> {
     pub fn new(application: T) -> Self {
         Srvrls { application }
+    }
+
+    fn response(&self, status_code: i64, body: Option<String>, headers: HashMap<String,String>) -> ApiGatewayProxyResponse {
+        ApiGatewayProxyResponse {
+            status_code: status_code,
+            headers,
+            multi_value_headers: Default::default(),
+            body,
+            is_base64_encoded: None,
+        }
     }
 }
 
@@ -144,8 +174,24 @@ mod validation_tests {
     }
 
     impl SrvrlsApplication for TestApplication {
-        fn handle(&mut self, event: SrvrlsRequest) -> SrvrlsResponse {
-            self.response.clone()
+        fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse,SrvrlsError> {
+            Ok(self.response.clone())
+        }
+    }
+
+    struct ErrorApplication {
+        error: SrvrlsError
+    }
+
+    impl ErrorApplication {
+        fn new(error: SrvrlsError) -> Self {
+            ErrorApplication { error }
+        }
+    }
+
+    impl SrvrlsApplication for ErrorApplication {
+        fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse,SrvrlsError> {
+            Err(self.error.clone())
         }
     }
 
@@ -155,7 +201,7 @@ mod validation_tests {
         let mut wrapper = Srvrls::new(application);
         match wrapper.run(api_proxy_request(), Context::default()) {
             Ok(result) => {
-                assert_eq!(api_proxy_response(200, None), result)
+                assert_eq!(api_proxy_response(200, None, Default::default()), result)
             }
             Err(e) => { panic!(e) }
         }
@@ -167,16 +213,28 @@ mod validation_tests {
         let mut srvrls = Srvrls::new(application);
         match srvrls.run(api_proxy_request(), Context::default()) {
             Ok(result) => {
-                assert_eq!(api_proxy_response(200, Some(r#"{"error":"a message"}"#.to_string())), result)
+                assert_eq!(api_proxy_response(200, Some(r#"{"error":"a message"}"#.to_string()), Default::default()), result)
             }
             Err(e) => { panic!(e) }
         }
     }
 
-    fn api_proxy_response(status_code: i64, body: Option<String>) -> ApiGatewayProxyResponse {
+    #[test]
+    fn test_error() {
+        let application = ErrorApplication::new(SrvrlsError::BadRequest("fail".to_string()));
+        let mut srvrls = Srvrls::new(application);
+        match srvrls.run(api_proxy_request(), Context::default()) {
+            Ok(result) => {
+                assert_eq!(result, api_proxy_response(400, Some(r#"{"error":"fail"}"#.to_string()), Default::default()))
+            }
+            Err(e) => { panic!(e) }
+        }
+    }
+
+    fn api_proxy_response(status_code: i64, body: Option<String>, headers: HashMap<String,String>) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
             status_code,
-            headers: Default::default(),
+            headers,
             multi_value_headers: Default::default(),
             body,
             is_base64_encoded: None,
@@ -184,8 +242,8 @@ mod validation_tests {
     }
 
     fn api_proxy_request() -> ApiGatewayProxyRequest {
-        let mut path_parameters : HashMap<String,String> = Default::default();
-        path_parameters.insert("proxy".to_string(),"path/to/route".to_string());
+        let mut path_parameters: HashMap<String, String> = Default::default();
+        path_parameters.insert("proxy".to_string(), "path/to/route".to_string());
         ApiGatewayProxyRequest {
             resource: None,
             path: None,
