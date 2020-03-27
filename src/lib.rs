@@ -1,6 +1,3 @@
-extern crate validator;
-#[macro_use]
-extern crate validator_derive;
 
 use std::collections::HashMap;
 
@@ -12,7 +9,6 @@ use serde_json::Value;
 pub use crate::response::SrvrlsResponse;
 
 mod response;
-mod validate;
 
 
 pub enum HttpMethod {
