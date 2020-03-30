@@ -57,6 +57,12 @@ impl SrvrlsRequest {
             Some(val) => val.to_string(),
         }
     }
+
+    pub fn query_parameters(&self) -> HashMap<String,String> {
+        let parameters = &self.event.query_string_parameters;
+        parameters.clone()
+    }
+
     pub fn method(&self) -> HttpMethod {
         match &self.event.http_method {
             None => HttpMethod::OTHER,
