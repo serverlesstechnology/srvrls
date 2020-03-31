@@ -1,16 +1,17 @@
-
 use std::collections::HashMap;
 
-use aws_lambda_events::event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
-use lambda_runtime::{Context, Handler};
-use lambda_runtime::error::HandlerError;
+use aws_lambda_events::event::apigw::ApiGatewayProxyRequest;
 use serde_json::Value;
 
 pub use crate::response::SrvrlsResponse;
 
+mod application;
 mod response;
 
-
+/// Replaces a String match with an enum that only includes the most common `HttpMethod`s. This
+/// reduces overhead from trash methods like `CONNECT`, `OPTIONS` or `TRACE` as well as non-legit
+/// codes that are possible with `Strings`.
+/// Seriously, if you're using one of those you're probably just trolling your users.
 pub enum HttpMethod {
     GET,
     POST,
@@ -20,6 +21,9 @@ pub enum HttpMethod {
     OTHER,
 }
 
+/// You can always return the precise error response, but using the specific error allows a much
+/// cleaner rolloff using the `?` operator. All of these translate directly to their respective
+/// 4xx or 5xx HTTP responses.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SrvrlsError {
     BadRequest(String),
@@ -30,6 +34,7 @@ pub enum SrvrlsError {
     InternalServerError,
 }
 
+/// This replaces the inbound `Request` and `Context` entity with simpler, opinionated methods.
 // TODO implement From<ApiGatewayProxyRequest> ??
 pub struct SrvrlsRequest {
     event: ApiGatewayProxyRequest,
@@ -51,6 +56,8 @@ impl SrvrlsRequest {
         }
     }
 
+    /// Provides the path parameter as a String, if the parameter is missing an empty string will be
+    /// returned in its' stead.
     pub fn path_parameter(&self, position: i32) -> String {
         match &self.path_parameters.get(&position) {
             None => "".to_string(),
@@ -58,11 +65,14 @@ impl SrvrlsRequest {
         }
     }
 
-    pub fn query_parameters(&self) -> HashMap<String,String> {
+    /// Returns a fully owned Hashmap containing the one-to-one query key-value pairs
+    pub fn query_parameters(&self) -> HashMap<String, String> {
         let parameters = &self.event.query_string_parameters;
         parameters.clone()
     }
 
+    /// Returns the `HttpMethod` for the most common parameters and `HttpMethod::Other` when a rare
+    /// or unknown method is passed.
     pub fn method(&self) -> HttpMethod {
         match &self.event.http_method {
             None => HttpMethod::OTHER,
@@ -78,6 +88,8 @@ impl SrvrlsRequest {
             }
         }
     }
+
+    /// Returns a cloned, owned copy of the body in String form.
     pub fn body(&self) -> String {
         match &self.event.body {
             None => "".to_string(),
@@ -85,6 +97,8 @@ impl SrvrlsRequest {
         }
     }
 
+    /// This provides access to authentication claims (in AWS Lambda Proxy calls) that are `String`s.
+    /// This signature is likely to change with Azure and Google Cloud Function implemenations.
     pub fn authentication_claim(&self, claim: &str) -> String {
         match &self.event.request_context.authorizer.get("claims") {
             None => "".to_string(),
@@ -111,68 +125,15 @@ impl SrvrlsRequest {
     }
 }
 
-pub trait SrvrlsApplication {
-    fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError>;
-}
-
-pub struct Srvrls<T: SrvrlsApplication> {
-    application: T,
-    response_header_provider: Box<dyn Fn(HashMap<String, String>) -> HashMap<String, String>>,
-}
-
-
-impl<T: SrvrlsApplication> Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, HandlerError> for Srvrls<T> {
-    fn run(&mut self, event: ApiGatewayProxyRequest, _ctx: Context) -> Result<ApiGatewayProxyResponse, HandlerError> {
-        let request = SrvrlsRequest::new(event);
-        match self.application.handle(request) {
-            Ok(response) => {
-                let headers = (self.response_header_provider)(response.headers);
-                Ok(self.response(response.status_code as i64, response.body, headers))
-            }
-            Err(e) => {
-                let headers = (self.response_header_provider)(HashMap::new());
-                match e {
-                    SrvrlsError::BadRequest(body) => {
-                        let payload = serde_json::to_string(&SrvrlsResponse::simple_error(body))?;
-                        Ok(self.response(400, Some(payload), headers))
-                    }
-                    SrvrlsError::Unauthorized => { Ok(self.response(401, None, headers)) }
-                    SrvrlsError::Forbidden => Ok(self.response(403, None, headers)),
-                    SrvrlsError::NotFound => Ok(self.response(404, None, headers)),
-                    SrvrlsError::MethodNotAllowed => Ok(self.response(405, None, headers)),
-                    SrvrlsError::InternalServerError => Ok(self.response(500, None, headers)),
-                }
-            }
-        }
-    }
-}
-
-impl<T: SrvrlsApplication> Srvrls<T> {
-    pub fn new(application: T) -> Self {
-        let response_header_provider = Box::new(|_h: HashMap<String, String>| HashMap::new());
-        Srvrls { application, response_header_provider }
-    }
-    pub fn with_response_header_provider(&mut self, header_provider: Box<dyn Fn(HashMap<String, String>) -> HashMap<String, String>>) {
-        self.response_header_provider = header_provider;
-    }
-
-
-    fn response(&self, status_code: i64, body: Option<String>, headers: HashMap<String, String>) -> ApiGatewayProxyResponse {
-        ApiGatewayProxyResponse {
-            status_code: status_code,
-            headers,
-            multi_value_headers: Default::default(),
-            body,
-            is_base64_encoded: None,
-        }
-    }
-}
 
 #[cfg(test)]
 mod validation_tests {
-    use aws_lambda_events::event::apigw::{ApiGatewayProxyRequestContext, ApiGatewayRequestIdentity};
+    use aws_lambda_events::event::apigw::{ApiGatewayProxyRequestContext, ApiGatewayRequestIdentity, ApiGatewayProxyResponse};
+
+    use crate::application::{Srvrls, SrvrlsApplication};
 
     use super::*;
+    use lambda_runtime::{Context, Handler};
 
     struct TestApplication {
         response: SrvrlsResponse
@@ -210,7 +171,7 @@ mod validation_tests {
     fn test_response_header_provider() {
         let application = TestApplication::new(SrvrlsResponse::ok_empty());
         let mut wrapper = Srvrls::new(application);
-        wrapper.with_response_header_provider(Box::new(|h | {
+        wrapper.with_response_header_provider(Box::new(|h| {
             let mut header_provider = HashMap::new();
             for (key, value) in h.iter() {
                 header_provider.insert(key.to_string(), value.to_string());
