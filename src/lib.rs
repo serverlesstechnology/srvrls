@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use aws_lambda_events::event::apigw::ApiGatewayProxyRequest;
 use serde_json::Value;
 
+pub use crate::application::{Srvrls,SrvrlsApplication};
 pub use crate::response::SrvrlsResponse;
 
 mod application;
