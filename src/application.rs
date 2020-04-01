@@ -1,8 +1,10 @@
-use crate::{SrvrlsError, SrvrlsRequest, SrvrlsResponse};
-use aws_lambda_events::event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
-use lambda_runtime::{Handler, Context};
-use lambda_runtime::error::HandlerError;
 use std::collections::HashMap;
+
+use aws_lambda_events::event::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
+use lambda_runtime::{Context, Handler};
+use lambda_runtime::error::HandlerError;
+
+use crate::{SrvrlsError, SrvrlsRequest, SrvrlsResponse};
 
 pub trait SrvrlsApplication {
     fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError>;
@@ -25,11 +27,13 @@ impl<T: SrvrlsApplication> Handler<ApiGatewayProxyRequest, ApiGatewayProxyRespon
             Err(e) => {
                 let headers = (self.response_header_provider)(HashMap::new());
                 match e {
-                    SrvrlsError::BadRequest(body) => {
-                        let payload = serde_json::to_string(&SrvrlsResponse::simple_error(body))?;
+                    SrvrlsError::BadRequest(body) => Ok(self.response(400, Some(body), headers)),
+                    SrvrlsError::BadRequestNoMessage() => Ok(self.response(400, None, headers)),
+                    SrvrlsError::BadRequestWithSimpleMessage(simple_message) => {
+                        let payload = serde_json::to_string(&SrvrlsResponse::simple_error(simple_message))?;
                         Ok(self.response(400, Some(payload), headers))
                     }
-                    SrvrlsError::Unauthorized => { Ok(self.response(401, None, headers)) }
+                    SrvrlsError::Unauthorized => Ok(self.response(401, None, headers)),
                     SrvrlsError::Forbidden => Ok(self.response(403, None, headers)),
                     SrvrlsError::NotFound => Ok(self.response(404, None, headers)),
                     SrvrlsError::MethodNotAllowed => Ok(self.response(405, None, headers)),

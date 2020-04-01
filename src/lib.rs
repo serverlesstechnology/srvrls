@@ -28,6 +28,8 @@ pub enum HttpMethod {
 #[derive(Debug, Clone, PartialEq)]
 pub enum SrvrlsError {
     BadRequest(String),
+    BadRequestNoMessage(),
+    BadRequestWithSimpleMessage(String),
     Unauthorized,
     Forbidden,
     NotFound,
@@ -36,7 +38,6 @@ pub enum SrvrlsError {
 }
 
 /// This replaces the inbound `Request` and `Context` entity with simpler, opinionated methods.
-// TODO implement From<ApiGatewayProxyRequest> ??
 pub struct SrvrlsRequest {
     event: ApiGatewayProxyRequest,
     path_parameters: HashMap<i32, String>,
@@ -216,10 +217,26 @@ mod validation_tests {
 
     #[test]
     fn test_error_bad_request() {
-        let application = ErrorApplication::new(SrvrlsError::BadRequest("fail".to_string()));
+        let application = ErrorApplication::new(SrvrlsError::BadRequest(r#"{"a_key":"a-value"}"#.to_string()));
+        let mut srvrls = Srvrls::new(application);
+
+        expect_error(&mut srvrls, 400, Some(r#"{"a_key":"a-value"}"#.to_string()))
+    }
+
+    #[test]
+    fn test_error_bad_request_with_simple_message() {
+        let application = ErrorApplication::new(SrvrlsError::BadRequestWithSimpleMessage("fail".to_string()));
         let mut srvrls = Srvrls::new(application);
 
         expect_error(&mut srvrls, 400, Some(r#"{"error":"fail"}"#.to_string()))
+    }
+
+    #[test]
+    fn test_error_bad_request_no_message() {
+        let application = ErrorApplication::new(SrvrlsError::BadRequestNoMessage());
+        let mut srvrls = Srvrls::new(application);
+
+        expect_error(&mut srvrls, 400, None)
     }
 
     #[test]
