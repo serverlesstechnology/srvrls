@@ -2,29 +2,49 @@
 
 ![CodeBuild test indicator](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoib3o3dlJ5RkJuMEVTckIyR1p1WXAzZkxjVzFQTnZ1QjFMUzZ0OUc2Q1dkQlVhQVU2WjFFTExyQVladmRoc2tSRkozbHFVaHg2ZGhtY2xlN2N1ZFY4cDhjPSIsIml2UGFyYW1ldGVyU3BlYyI6IjdiZUk4RWRZeHpoemZxdEUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
 
-This library is likely not for you. It has opinions, strong ones, likely not your own.
+We built this library to simplify building applications that use AWS API Gateway
+as a proxy for AWS Lambda.
 
-We built it to simplify building applications rapidly within a serverless architecture.
-It also serves to add some consistency around serverless applications that we otherwise
-did not have.
-
+This library has opinions, strong ones, very possibly not your own.
 Our design priorities here are simple:
 
-- reduce boilerplate to building serverless function applications
+- reduce needed boilerplate in serverless applications
 - provide opinionated defaults to otherwise open questions (more on this later)
 - provide decoupling between the serverless function provider and the application logic
+(keeping open the option of supporting Google or Azure functions in the future)
 
-## Opinions
+This wrapper turns this
+    
+    impl Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, HandlerError> for App {
+        fn run(&mut self, req: ApiGatewayProxyRequest, _ctx: Context) -> Result<ApiGatewayProxyResponse, HandlerError> {
+            match some_function(req) {
+                Ok(response) => {
+                    ApiGatewayProxyResponse {
+                        status_code: 200,
+                        headers: hashmap!(String::from("Content-Type") => String::from("application/json")),
+                        multi_value_headers: HashMap::new(),
+                        body: Some(response),
+                        is_base64_encoded: None,
+                    }
+                }, 
+                Err(e) => {
+                    ApiGatewayProxyResponse {
+                        status_code: 400,
+                        headers: hashmap!(String::from("Content-Type") => String::from("application/json")),
+                        multi_value_headers: HashMap::new(),
+                        body: Some(e.message),
+                        is_base64_encoded: None,
+                    }
+                }
+            }
+        }
+    }
 
-- the application will be accessed via HTTP - standard HTTP concepts such as headers, query 
-and path parameters are closely held
-- differentiation between `None` and `Some(String)` provides minimal value if you're just matching 
-on the string value - we remove `Option`s where they are unnecessary to again reduce boilerplate
-- every Rust dev has their own preferred way of solving a problem - as much as we enjoy our own
-opinions, we realize that taking that too far makes our solution unpalatable to many.
-Accordingly we keep it simple, reduce to boilerplate and leave the pattern to the dev.
-- most of us are probably using AWS Lambda - we built it that way. Expect changes whenever
-we get around to building out the Google Cloud and Azure implementations (don't wait up).
-- TBH, we really targeted AWS Gateway Proxy - so if you're doing  anything other than that,
-your application probably won't work well with our implementation
+into this
 
+    impl SrvrlsApplication for App {
+        fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
+            let response = some_function?;
+            Ok(SrvrlsResponse::ok(response))
+        }
+    }
