@@ -1,8 +1,13 @@
 [package]
 name = "srvrls"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Dave Garred <dave.garred@serverlesstechnology.com>"]
 edition = "2018"
+license-file = "LICENSE"
+keywords = ["serverless", "AWS Lambda", "AWS API Gateway"]
+description = "A lightweight, opinionated serverless framework reducing boilerplate"
+repository = "https://github.com/serverlesstechnology/srvrls"
+readme = "README.md"
 
 [dependencies]
 aws_lambda_events = "0.2.5"
