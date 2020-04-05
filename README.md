@@ -16,8 +16,8 @@ Our design priorities here are simple:
 This wrapper turns this
     
     impl Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, HandlerError> for App {
-        fn run(&mut self, req: ApiGatewayProxyRequest, _ctx: Context) -> Result<ApiGatewayProxyResponse, HandlerError> {
-            match some_function(req) {
+        fn run(&mut self, event: ApiGatewayProxyRequest, _ctx: Context) -> Result<ApiGatewayProxyResponse, HandlerError> {
+            match some_function(event) {
                 Ok(response) => {
                     ApiGatewayProxyResponse {
                         status_code: 200,
@@ -44,7 +44,7 @@ into this
 
     impl SrvrlsApplication for App {
         fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
-            let response = some_function?;
+            let response = some_function(event)?;
             Ok(SrvrlsResponse::ok(response))
         }
     }
