@@ -123,13 +123,3 @@ impl<T: SrvrlsApplication> Srvrls<T> {
         }
     }
 }
-
-struct App {}
-impl SrvrlsApplication for App {
-    fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
-        Ok(SrvrlsResponse::ok_empty())
-    }
-}
-fn application_build_test_code() -> App {
-    App {}
-}
