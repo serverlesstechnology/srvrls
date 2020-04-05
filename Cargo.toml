@@ -1,6 +1,6 @@
 [package]
 name = "srvrls"
-version = "0.1.1"
+version = "0.1.4"
 authors = ["Dave Garred <dave.garred@serverlesstechnology.com>"]
 edition = "2018"
 license-file = "LICENSE"
