@@ -3,4 +3,4 @@ test:
 	cargo test
 
 doc:
-	cargo doc --lib
+	cargo doc --lib --no-deps

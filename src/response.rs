@@ -2,47 +2,67 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
+/// The struct used to house details of the call response for custom responses.
+/// For most responses the helper methods are most useful.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SrvrlsResponse {
+    /// Http status code.
     pub status_code: i32,
+    /// Any custom response headers, this will be improved by any configured `header_interceptor`.
     pub headers: HashMap<String, String>,
+    /// Response body.
     pub body: Option<String>,
 }
 
+/// A simple error message wrapper.
 #[derive(Serialize)]
 pub struct SimpleError {
     error: String,
 }
 
 impl SrvrlsResponse {
+
+    /// Wraps a simple String error message in a [`SimpleError`] to be serialized for the response.
     pub fn simple_error(error_message: String) -> Option<SimpleError> {
         Some(SimpleError {
             error: error_message,
         })
     }
 
+    /// Helper method to provide a response for 200 - Ok with the provided response body
     pub fn ok<T: Serialize>(body: T) -> SrvrlsResponse { SrvrlsResponse::with_status_and_body(200, body) }
 
+    /// Helper method to provide a response for 200 - Ok with no body
     pub fn ok_empty() -> SrvrlsResponse { SrvrlsResponse::with_status(200) }
 
+    /// Helper method to provide a response for 201 - Created
     pub fn created() -> SrvrlsResponse { SrvrlsResponse::with_status(201) }
 
+    /// Helper method to provide a response for 202 - Accepted
     pub fn accepted() -> SrvrlsResponse { SrvrlsResponse::with_status(204) }
 
+    /// Helper method to provide a response for 204 - No Content
     pub fn no_content() -> SrvrlsResponse { SrvrlsResponse::with_status(204) }
 
+    /// Helper method to provide a response for 400 - Bad Request
     pub fn bad_request<T: Serialize>(body: T) -> SrvrlsResponse { SrvrlsResponse::with_status_and_body(400, body) }
 
+    /// Helper method to provide a response for 401 - Unauthorized
     pub fn unauthorized() -> SrvrlsResponse { SrvrlsResponse::with_status(401) }
 
+    /// Helper method to provide a response for 403 - Forbidden
     pub fn forbidden() -> SrvrlsResponse { SrvrlsResponse::with_status(403) }
 
+    /// Helper method to provide a response for 404 - Not Found
     pub fn not_found() -> SrvrlsResponse { SrvrlsResponse::with_status(404) }
 
+    /// Helper method to provide a response for 405 - Method Not Allowed
     pub fn method_not_allowed() -> SrvrlsResponse { SrvrlsResponse::with_status(405) }
 
+    /// Helper method to provide a response for 500 - Internal Server Error
     pub fn internal_server_error() -> SrvrlsResponse { SrvrlsResponse::with_status(500) }
 
+    /// Helper method to provide a response for 503 - Service Unavailable
     pub fn service_unavailable() -> SrvrlsResponse { SrvrlsResponse::with_status(503) }
 
     fn with_status(status_code: i32) -> SrvrlsResponse {

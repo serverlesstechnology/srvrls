@@ -5,11 +5,19 @@ use std::{fmt, error};
 /// codes that are possible with `Strings`.
 /// Seriously, if you're using one of those you're probably just trolling your users.
 pub enum HttpMethod {
+    /// GET http method
     GET,
+    /// POST http method
     POST,
+    /// PUT http method
     PUT,
+    /// HEAD http method
     HEAD,
+    /// DELETE http method
     DELETE,
+    /// One of the other http methods not implemented here
+    /// (intentionally, there is no reason to have 20 line match statements for the 1% of people
+    /// using `TRACE`)
     OTHER,
 }
 
@@ -18,13 +26,21 @@ pub enum HttpMethod {
 /// 4xx or 5xx HTTP responses.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SrvrlsError {
+    /// Responds with a 400 - Bad Request response using the provided payload
     BadRequest(String),
+    /// Responds with a 400 - Bad Request response with no payload
     BadRequestNoMessage(),
+    /// Responds with a 400 - Bad Request response using the provided message in a `SimpleMessage`
     BadRequestWithSimpleMessage(String),
+    /// Responds with a 401 - Unauthorized response
     Unauthorized,
+    /// Responds with a 403 - Forbidden response
     Forbidden,
+    /// Responds with a 404 - Not Found response
     NotFound,
+    /// Responds with a 405 - Method Not Allowed response
     MethodNotAllowed,
+    /// Responds with a 500 - Internal Server Error response
     InternalServerError,
 }
 

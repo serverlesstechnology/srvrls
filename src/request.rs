@@ -7,11 +7,17 @@ use crate::components::HttpMethod;
 
 /// This replaces the inbound `Request` and `Context` entity with simpler, opinionated methods.
 pub struct SrvrlsRequest {
-    pub query_string_parameters: HashMap<String, Vec<String>>,
+    /// All query parameters in a map by key value.
+    pub query_parameters: HashMap<String, Vec<String>>,
+    /// All path parameters in a map by position withing the proxy path parameter field.
     pub path_parameters: HashMap<i32, String>,
+    /// All String claims within the authorizer field.
     pub string_claims: HashMap<String, String>,
+    /// All Numeric (i64) claims within the authorizer field.
     pub integer_claims: HashMap<String, i64>,
+    /// The `HttpMethod` of the request.
     pub method: HttpMethod,
+    /// The request payload, or empty String if none exists.
     pub body: String,
 }
 
@@ -27,7 +33,7 @@ impl SrvrlsRequest {
 
     /// Returns a `Vec<String>` for a requested query parameter
     pub fn query_parameter(&self, key: &str) -> Vec<String> {
-        match self.query_string_parameters.get(key) {
+        match self.query_parameters.get(key) {
             None => Vec::new(),
             Some(v) => v.clone(),
         }
@@ -109,7 +115,7 @@ impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
             path_parameters,
             string_claims,
             integer_claims,
-            query_string_parameters,
+            query_parameters: query_string_parameters,
             method,
             body,
         }
