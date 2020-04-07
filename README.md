@@ -1,6 +1,29 @@
-# srvrls - a lightweight serverless framework
+# srvrls
+
+**A lightweight wrapper for using AWS Lambda as an API Gateway proxy.**
 
 ![CodeBuild test indicator](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoib3o3dlJ5RkJuMEVTckIyR1p1WXAzZkxjVzFQTnZ1QjFMUzZ0OUc2Q1dkQlVhQVU2WjFFTExyQVladmRoc2tSRkozbHFVaHg2ZGhtY2xlN2N1ZFY4cDhjPSIsIml2UGFyYW1ldGVyU3BlYyI6IjdiZUk4RWRZeHpoemZxdEUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+[![Crates.io](https://img.shields.io/crates/v/srvrls)](https://crates.io/crates/srvrls)
+[![docs](https://img.shields.io/badge/API-docs-blue.svg)](https://docs.rs/srvrls)
+
+--- 
+
+## Installation
+
+Srvrls is available from Crates.io or Github.
+
+```toml
+[dependencies]
+srvrls = "0.1.5"
+```
+
+Or for a specific branch
+```toml
+[dependencies]
+srvrls = { git = "https://github.com/serverlesstechnology/srvrls.git", branch = "master"}
+```
+
+## srvrls
 
 We built this library to simplify building applications that use AWS API Gateway
 as a proxy for AWS Lambda.

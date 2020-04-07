@@ -80,8 +80,8 @@ impl<T: SrvrlsApplication> Srvrls<T> {
     /// }
     /// ```
     pub fn new(application: T) -> Self {
-        let response_header_provider = Box::new(|_h: HashMap<String, String>| HashMap::new());
-        Srvrls { application, response_header_interceptor: response_header_provider }
+        let response_header_interceptor = Box::new(|_h: HashMap<String, String>| HashMap::new());
+        Srvrls { application, response_header_interceptor }
     }
 
     /// Allows for adding a header interceptor that modifies the response headers for all calls.
