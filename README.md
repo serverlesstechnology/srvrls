@@ -14,7 +14,7 @@ Srvrls is available from Crates.io or Github.
 
 ```toml
 [dependencies]
-srvrls = "0.1.6"
+srvrls = "0.1.7"
 ```
 
 Or for a specific branch

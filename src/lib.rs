@@ -1,4 +1,4 @@
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 //! # srvrls - a lightweight serverless framework
 //!
 //! ![CodeBuild test indicator](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoib3o3dlJ5RkJuMEVTckIyR1p1WXAzZkxjVzFQTnZ1QjFMUzZ0OUc2Q1dkQlVhQVU2WjFFTExyQVladmRoc2tSRkozbHFVaHg2ZGhtY2xlN2N1ZFY4cDhjPSIsIml2UGFyYW1ldGVyU3BlYyI6IjdiZUk4RWRZeHpoemZxdEUiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)

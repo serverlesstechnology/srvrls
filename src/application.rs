@@ -7,9 +7,36 @@ use crate::request::SrvrlsRequest;
 use crate::components::SrvrlsError;
 use crate::response::SrvrlsResponse;
 
-/// This trait should be implemented by your application to handle inbound events.
+/// This trait should be implemented by your application to handle inbound events. The values for
+/// these responses (e.g., status code, body, headers) will be mapped to the API Gateway response.
+/// ```rust
+/// # use srvrls::request::SrvrlsRequest;
+/// # use srvrls::response::SrvrlsResponse;
+/// # use srvrls::components::SrvrlsError;
+/// # use srvrls::application::SrvrlsApplication;
+/// # struct MyApplication {}
+/// impl SrvrlsApplication for MyApplication {
+///     fn handle(&mut self,event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
+///         Ok(SrvrlsResponse::ok_empty())
+///     }
+/// }
+/// ```
+/// Errors can also be returned with will map directly to their respective response values.
+/// ```rust
+/// # use srvrls::request::SrvrlsRequest;
+/// # use srvrls::response::SrvrlsResponse;
+/// # use srvrls::components::SrvrlsError;
+/// # use srvrls::application::SrvrlsApplication;
+/// # struct MyApplication {}
+/// impl SrvrlsApplication for MyApplication {
+///     fn handle(&mut self,event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
+///         Err(SrvrlsError::Unauthorized)
+///     }
+/// }
+/// ```
 pub trait SrvrlsApplication {
-    /// This method receives the inbound request and should return a result
+    /// This method receives the inbound request and should return a result composed of either
+    /// a `SrvrlsResponse` or a `SrvrlsError` that will be mapped to a (4xx or 5xx) response.
     fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError>;
 }
 
@@ -61,7 +88,8 @@ impl<T: SrvrlsApplication> Srvrls<T> {
     /// # use srvrls::response::SrvrlsResponse;
     /// struct App {}
     ///
-    /// impl SrvrlsApplication for App {fn handle(&mut self,event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
+    /// impl SrvrlsApplication for App {
+    ///     fn handle(&mut self,event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError> {
     ///         Ok(SrvrlsResponse::ok_empty())
     ///     }
     /// }
@@ -71,20 +99,31 @@ impl<T: SrvrlsApplication> Srvrls<T> {
     ///     Srvrls::new(app)
     /// }
     /// ```
-    /// This is then used to build your lambda application with
+    /// This `Srvrls` object is then used to build your lambda application within the `main`.
     /// ```ignore
+    /// use lambda_runtime::lambda;
     /// fn main() -> Result<(), Box<dyn Error>> {
-    ///     let srvrls = build_srvrls();
+    ///     let srvrls : Srvrls = build_srvrls();
     ///     lambda!(srvrls);
     ///     Ok(())
     /// }
     /// ```
+    /// Note that you will need the
+    /// [lambda runtime](https://github.com/awslabs/aws-lambda-rust-runtime)
+    /// included in your project.
+    /// ```toml
+    /// [dependencies]
+    /// lambda_runtime = "0.2.1"
+    /// ```
+    /// And some additional steps are needed for packaging see the
+    /// [lamba runtime deployment notes](https://github.com/awslabs/aws-lambda-rust-runtime#deployment).
     pub fn new(application: T) -> Self {
         let response_header_interceptor = Box::new(|_h: HashMap<String, String>| HashMap::new());
         Srvrls { application, response_header_interceptor }
     }
 
-    /// Allows for adding a header interceptor that modifies the response headers for all calls.
+    /// This function allows for adding a closure that will function as a header interceptor.
+    /// All responses will then have their headers enhanced by this interceptor.
     /// ```rust
     /// # use std::collections::HashMap;
     /// # use std::error::Error;
