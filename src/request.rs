@@ -6,11 +6,55 @@ use serde_json::Value;
 use crate::components::HttpMethod;
 
 /// This replaces the inbound `Request` and `Context` entity with simpler, opinionated methods.
+/// The data members can be used directly or one of the provided helper functions can simplify
+/// access by providing sensible defaults (e.g., empty string) to simplify match statements.
+///
+/// E.g.,
+/// ```rust
+///   # use crate::srvrls::request::SrvrlsRequest;
+///   # use crate::srvrls::response::SrvrlsResponse;
+///   # use crate::srvrls::components::SrvrlsError;
+///   # use crate::srvrls::components::HttpMethod;
+///
+///   fn test_handler(request: SrvrlsRequest) -> Result<SrvrlsResponse,SrvrlsError> {
+///       match (&request.method, request.path_parameter(0).as_str()) {
+///           (HttpMethod::POST, "customer") => Ok(SrvrlsResponse::no_content()),
+///           (HttpMethod::POST, "account") => Ok(SrvrlsResponse::created()),
+///           (HttpMethod::GET, "customer") => Ok(SrvrlsResponse::ok_empty()),
+///           _ => return Err(SrvrlsError::NotFound)
+///       }
+///   }
+///
+///   let mut request : SrvrlsRequest = Default::default();
+///   request.method = HttpMethod::POST;
+///   request.path = "customer/CUST-A23948".to_string();
+///   assert_eq!(SrvrlsResponse::no_content(), test_handler(request).unwrap());
+///
+///   let mut request : SrvrlsRequest = Default::default();
+///   request.method = HttpMethod::POST;
+///   request.path = "account/ACCT-G10291".to_string();
+///   assert_eq!(SrvrlsResponse::created(), test_handler(request).unwrap());
+///
+///   let mut request : SrvrlsRequest = Default::default();
+///   request.method = HttpMethod::GET;
+///   request.path = "customer/CUST-A23948".to_string();
+///   assert_eq!(SrvrlsResponse::ok_empty(), test_handler(request).unwrap());
+///
+///   let mut request : SrvrlsRequest = Default::default();
+///   request.method = HttpMethod::GET;
+///   request.path = "account/ACCT-G10291".to_string();
+///   assert_eq!(SrvrlsError::NotFound, test_handler(request).unwrap_err());
+/// ```
+
+
 pub struct SrvrlsRequest {
     /// All query parameters in a map by key value.
     pub query_parameters: HashMap<String, Vec<String>>,
-    /// All path parameters in a map by position withing the proxy path parameter field.
-    pub path_parameters: HashMap<i32, String>,
+    /// The path of the request. This is taken from the inbound event field `path_parameter` for
+    /// that has the value `proxy`.
+    ///
+    /// This value is always provided without a leading '/'
+    pub path: String,
     /// All String claims within the authorizer field.
     pub string_claims: HashMap<String, String>,
     /// All Numeric (i64) claims within the authorizer field.
@@ -21,13 +65,47 @@ pub struct SrvrlsRequest {
     pub body: String,
 }
 
+impl Default for SrvrlsRequest {
+    fn default() -> Self {
+        SrvrlsRequest {
+            query_parameters: Default::default(),
+            path: "".to_string(),
+            string_claims: Default::default(),
+            integer_claims: Default::default(),
+            method: HttpMethod::GET,
+            body: "".to_string()
+        }
+    }
+}
+
 impl SrvrlsRequest {
     /// Provides the path parameter as a String, if the parameter is missing an empty string will be
     /// returned in its' stead.
-    pub fn path_parameter(&self, position: i32) -> String {
-        match &self.path_parameters.get(&position) {
+    /// ```rust
+    ///   # use crate::srvrls::request::SrvrlsRequest;
+    ///   # use crate::srvrls::response::SrvrlsResponse;
+    ///   # use crate::srvrls::components::SrvrlsError;
+    ///   # use crate::srvrls::components::HttpMethod;
+    ///
+    ///     fn test_handler(request: SrvrlsRequest) -> Result<SrvrlsResponse,SrvrlsError> {
+    ///         match (&request.method, request.path_parameter(0).as_str()) {
+    ///             (HttpMethod::POST, "customer") => Ok(SrvrlsResponse::no_content()),
+    ///             (HttpMethod::POST, "account") => Ok(SrvrlsResponse::created()),
+    ///             (HttpMethod::GET, "customer") => Ok(SrvrlsResponse::ok_empty()),
+    ///             _ => return Err(SrvrlsError::NotFound)
+    ///         }
+    ///     }
+    ///   let mut request : SrvrlsRequest = Default::default();
+    ///   request.path = "customer/update/CUST-A23948".to_string();
+    ///   assert_eq!("customer", request.path_parameter(0));
+    ///   assert_eq!("update", request.path_parameter(1));
+    ///   assert_eq!("CUST-A23948", request.path_parameter(2));
+    /// ```
+    pub fn path_parameter(&self, position: usize) -> String {
+        let parameters : Vec<&str> = self.path.split('/').collect();
+        match parameters.get(position) {
             None => "".to_string(),
-            Some(val) => val.to_string(),
+            Some(parameter) => parameter.to_string(),
         }
     }
 
@@ -51,12 +129,7 @@ impl SrvrlsRequest {
 
 impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
     fn from(event: ApiGatewayProxyRequest) -> Self {
-        let mut path_parameters = HashMap::new();
-        let path_url = &event.path_parameters["proxy"];
-        let path_iter: Vec<&str> = path_url.split('/').collect();
-        for (i, path_segment) in path_iter.iter().enumerate() {
-            path_parameters.insert(i as i32, path_segment.to_string());
-        }
+        let path = event.path_parameters["proxy"].clone();
         let mut query_string_parameters = event.multi_value_query_string_parameters;
         for (k, v) in event.query_string_parameters {
             query_string_parameters.insert(k, vec![v]);
@@ -112,7 +185,8 @@ impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
         };
 
         SrvrlsRequest {
-            path_parameters,
+            // path_parameters,
+            path,
             string_claims,
             integer_claims,
             query_parameters: query_string_parameters,
@@ -120,4 +194,43 @@ impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
             body,
         }
     }
+}
+
+#[cfg(test)]
+mod request_tests {
+    use crate::request::SrvrlsRequest;
+    use crate::components::{HttpMethod, SrvrlsError};
+    use std::collections::HashMap;
+    use crate::response::SrvrlsResponse;
+
+    #[test]
+    fn test_path() {
+        let mut request : SrvrlsRequest = Default::default();
+        request.path = "customer/update/CUST-A23948".to_string();
+        assert_eq!("customer", request.path_parameter(0));
+        assert_eq!("update", request.path_parameter(1));
+        assert_eq!("CUST-A23948", request.path_parameter(2));
+        // let response = test_handler(request);
+    }
+    #[test]
+    fn test_complex_switch() {
+        let mut request : SrvrlsRequest = Default::default();
+        request.path = "customer/update/CUST-A23948".to_string();
+        assert_eq!("customer", request.path_parameter(0));
+        assert_eq!("update", request.path_parameter(1));
+        assert_eq!("CUST-A23948", request.path_parameter(2));
+        // let response = test_handler(request);
+    }
+    fn test_handler(request: SrvrlsRequest) -> Result<SrvrlsResponse,SrvrlsError> {
+        let result = match (&request.method, request.path_parameter(0).as_str()) {
+            (HttpMethod::POST, "customer") => add_customer(request.body)?,
+            (HttpMethod::POST, "account") => update_account(request.body)?,
+            (HttpMethod::GET, "customer") => find_customer(request.path_parameter(1))?,
+            _ => return Err(SrvrlsError::NotFound)
+        };
+        Ok(result)
+    }
+    fn add_customer(r: String) -> Result<SrvrlsResponse,SrvrlsError> { Ok(SrvrlsResponse::ok_empty()) }
+    fn update_account(r: String) -> Result<SrvrlsResponse,SrvrlsError> { Ok(SrvrlsResponse::ok_empty()) }
+    fn find_customer(r: String) -> Result<SrvrlsResponse,SrvrlsError> { Ok(SrvrlsResponse::ok_empty()) }
 }

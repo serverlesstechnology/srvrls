@@ -14,7 +14,7 @@ Srvrls is available from Crates.io or Github.
 
 ```toml
 [dependencies]
-srvrls = "0.1.5"
+srvrls = "0.1.6"
 ```
 
 Or for a specific branch
@@ -32,11 +32,11 @@ This library has opinions, strong ones, very possibly not your own.
 Our design priorities here are simple:
 
 - reduce needed boilerplate in serverless applications
-- provide opinionated defaults to otherwise open questions (more on this later)
+- provide opinionated defaults to otherwise open questions
 - provide decoupling between the serverless function provider and the application logic
 (keeping open the option of supporting Google or Azure functions in the future)
 
-This wrapper turns this
+In short this wrapper turns this
     
     impl Handler<ApiGatewayProxyRequest, ApiGatewayProxyResponse, HandlerError> for App {
         fn run(&mut self, event: ApiGatewayProxyRequest, _ctx: Context) -> Result<ApiGatewayProxyResponse, HandlerError> {
