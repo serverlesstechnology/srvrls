@@ -68,10 +68,10 @@ pub struct SrvrlsRequest {
 impl Default for SrvrlsRequest {
     fn default() -> Self {
         SrvrlsRequest {
-            query_parameters: Default::default(),
+            query_parameters: HashMap::default(),
             path: "".to_string(),
-            string_claims: Default::default(),
-            integer_claims: Default::default(),
+            string_claims: HashMap::default(),
+            integer_claims: HashMap::default(),
             method: HttpMethod::GET,
             body: "".to_string(),
         }
@@ -101,15 +101,17 @@ impl SrvrlsRequest {
     ///   assert_eq!("update", request.path_parameter(1));
     ///   assert_eq!("CUST-A23948", request.path_parameter(2));
     /// ```
+    #[must_use]
     pub fn path_parameter(&self, position: usize) -> String {
         let parameters: Vec<&str> = self.path.split('/').collect();
         match parameters.get(position) {
             None => "".to_string(),
-            Some(parameter) => parameter.to_string(),
+            Some(parameter) => (*parameter).to_string(),
         }
     }
 
     /// Returns a `Vec<String>` for a requested query parameter
+    #[must_use]
     pub fn query_parameter(&self, key: &str) -> Vec<String> {
         match self.query_parameters.get(key) {
             None => Vec::new(),
@@ -119,6 +121,7 @@ impl SrvrlsRequest {
 
     /// This provides access to authentication claims (in AWS Lambda Proxy calls) that are `String`s.
     /// This signature is likely to change with Azure and Google Cloud Function implemenations.
+    #[must_use]
     pub fn authentication_claim(&self, claim: &str) -> String {
         match self.string_claims.get(claim) {
             None => "".to_string(),
@@ -149,7 +152,7 @@ impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
         };
         let body = match event.body {
             None => "".to_string(),
-            Some(body) => body.clone(),
+            Some(body) => body,
         };
         let mut string_claims = HashMap::new();
         let mut integer_claims = HashMap::new();
@@ -165,8 +168,10 @@ impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
                     Value::Object(claims) => {
                         for (k, v) in claims {
                             match v {
-                                Value::Null => {}
-                                Value::Bool(_) => {}
+                                Value::Null |
+                                Value::Bool(_) |
+                                Value::Array(_) |
+                                Value::Object(_) => {}
                                 Value::Number(number_value) => {
                                     if number_value.is_i64() {
                                         integer_claims.insert(k, number_value.as_i64().unwrap());
@@ -175,8 +180,6 @@ impl From<ApiGatewayProxyRequest> for SrvrlsRequest {
                                 Value::String(string_value) => {
                                     string_claims.insert(k, string_value);
                                 }
-                                Value::Array(_) => {}
-                                Value::Object(_) => {}
                             };
                         }
                     }

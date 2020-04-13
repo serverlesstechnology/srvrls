@@ -1,4 +1,5 @@
 use std::{fmt, error};
+use crate::response::SrvrlsResponse;
 
 /// Replaces a String match with an enum that only includes the most common `HttpMethod`s. This
 /// reduces overhead from trash methods like `CONNECT`, `OPTIONS` or `TRACE` as well as non-legit
@@ -49,8 +50,12 @@ impl error::Error for SrvrlsError {}
 impl fmt::Display for SrvrlsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SrvrlsError::BadRequestWithSimpleMessage(msg) => write!(f, "Bad Request: {}", msg),
             SrvrlsError::BadRequestNoMessage() => write!(f, "Bad Request"),
+            SrvrlsError::BadRequestWithSimpleMessage(msg) => {
+                let response = SrvrlsResponse::simple_error((*msg).clone());
+                let body = serde_json::to_string(&response).unwrap();
+                write!(f, "Bad Request: {}", body)
+            },
             SrvrlsError::BadRequest(msg) => write!(f, "Bad Request: {}", msg),
             SrvrlsError::Unauthorized => write!(f, "Unauthorized"),
             SrvrlsError::Forbidden => write!(f, "Forbidden"),

@@ -55,22 +55,23 @@ impl<T: SrvrlsApplication> Handler<ApiGatewayProxyRequest, ApiGatewayProxyRespon
         match self.application.handle(request) {
             Ok(response) => {
                 let headers = (self.response_header_interceptor)(response.headers);
-                Ok(self.response(i64::from(response.status_code), response.body, headers))
+                let body = response.body;
+                Ok(Srvrls::<T>::response(i64::from(response.status_code), body, headers))
             }
             Err(e) => {
                 let headers = (self.response_header_interceptor)(HashMap::new());
                 match e {
-                    SrvrlsError::BadRequest(body) => Ok(self.response(400, Some(body), headers)),
-                    SrvrlsError::BadRequestNoMessage() => Ok(self.response(400, None, headers)),
+                    SrvrlsError::BadRequest(body) => Ok(Srvrls::<T>::response(400, Some(body), headers)),
+                    SrvrlsError::BadRequestNoMessage() => Ok(Srvrls::<T>::response(400, None, headers)),
                     SrvrlsError::BadRequestWithSimpleMessage(simple_message) => {
                         let payload = serde_json::to_string(&SrvrlsResponse::simple_error(simple_message))?;
-                        Ok(self.response(400, Some(payload), headers))
+                        Ok(Srvrls::<T>::response(400, Some(payload), headers))
                     }
-                    SrvrlsError::Unauthorized => Ok(self.response(401, None, headers)),
-                    SrvrlsError::Forbidden => Ok(self.response(403, None, headers)),
-                    SrvrlsError::NotFound => Ok(self.response(404, None, headers)),
-                    SrvrlsError::MethodNotAllowed => Ok(self.response(405, None, headers)),
-                    SrvrlsError::InternalServerError => Ok(self.response(500, None, headers)),
+                    SrvrlsError::Unauthorized => Ok(Srvrls::<T>::response(401, None, headers)),
+                    SrvrlsError::Forbidden => Ok(Srvrls::<T>::response(403, None, headers)),
+                    SrvrlsError::NotFound => Ok(Srvrls::<T>::response(404, None, headers)),
+                    SrvrlsError::MethodNotAllowed => Ok(Srvrls::<T>::response(405, None, headers)),
+                    SrvrlsError::InternalServerError => Ok(Srvrls::<T>::response(500, None, headers)),
                 }
             }
         }
@@ -152,11 +153,11 @@ impl<T: SrvrlsApplication> Srvrls<T> {
         self.response_header_interceptor = header_interceptor;
     }
 
-    fn response(&self, status_code: i64, body: Option<String>, headers: HashMap<String, String>) -> ApiGatewayProxyResponse {
+    fn response(status_code: i64, body: Option<String>, headers: HashMap<String, String>) -> ApiGatewayProxyResponse {
         ApiGatewayProxyResponse {
             status_code,
             headers,
-            multi_value_headers: Default::default(),
+            multi_value_headers: HashMap::default(),
             body,
             is_base64_encoded: None,
         }
