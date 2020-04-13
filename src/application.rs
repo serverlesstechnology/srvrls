@@ -37,6 +37,9 @@ use crate::response::SrvrlsResponse;
 pub trait SrvrlsApplication {
     /// This method receives the inbound request and should return a result composed of either
     /// a `SrvrlsResponse` or a `SrvrlsError` that will be mapped to a (4xx or 5xx) response.
+    ///
+    /// # Errors
+    /// Errors returned by this method will be mapped to a (4xx or 5xx) response.
     fn handle(&mut self, event: SrvrlsRequest) -> Result<SrvrlsResponse, SrvrlsError>;
 }
 
